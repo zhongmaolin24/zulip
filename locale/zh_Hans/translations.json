@@ -125,6 +125,7 @@
   "Admins, moderators, members and guests": "管理员、版主、会员和访客",
   "Advanced configurations": "",
   "Advertise organization in the Zulip communities directory": "Zulip 社区目录中的广告组织",
+  "AI assisted in explaining this message": "AI 辅助解释这条信息",
   "Alert word": "提示词",
   "Alert word \"{alert_word}\" removed successfully!": "提示：成功添加词语 \"{word}\"！",
   "Alert word already exists!": "提示词已经存在",

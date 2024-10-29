@@ -246,6 +246,36 @@ export function initialize() {
         starred_messages_ui.toggle_starred_and_update_server(message);
     });
 
+    $("#main_div").on("click", ".message_ai_bot_button", function (e) {
+        e.stopPropagation();
+
+        const message_id = rows.id($(this).closest(".message_row"));
+        const message = message_store.get(message_id);
+        const {content, topic, stream, sender_email} = message
+
+        const requestData = {
+            stream,  // Replace with your stream name
+            topic,     // Replace with your topic name
+            content,       // Replace with your content
+            senderEmail: sender_email // Replace with your sender email
+        };
+
+        $.ajax({
+            url: 'http://localhost:8080/api/chat/help/complete',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(requestData),
+            success: function(response) {
+                console.log("Response from server:", response);
+            },
+            error: function(xhr, status, error) {
+                console.error("Error:", error);
+                console.error("Status:", status);
+                console.error("XHR:", xhr);
+            }
+        });
+    });
+
     $("#main_div").on("click", ".message_reaction", function (e) {
         e.stopPropagation();
 
@@ -425,17 +455,6 @@ export function initialize() {
     });
 
     // SIDEBARS
-    $("body").on("click", "#compose-new-direct-message", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        compose_actions.start({
-            message_type: "private",
-            trigger: "new direct message",
-            keep_composebox_empty: true,
-        });
-    });
-
     $(".buddy-list-section").on("click", ".selectable_sidebar_block", (e) => {
         if (e.metaKey || e.ctrlKey || e.shiftKey) {
             return;
@@ -611,20 +630,6 @@ export function initialize() {
                 get_target_node,
                 check_reference_removed,
             );
-        });
-    });
-
-    // Left sidebar channel rows
-    $("body").on("click", ".channel-new-topic-button", (e) => {
-        e.stopPropagation();
-        const elem = e.currentTarget;
-        const stream_id = Number.parseInt(elem.dataset.streamId, 10);
-        compose_actions.start({
-            message_type: "stream",
-            stream_id,
-            topic: "",
-            trigger: "clear topic button",
-            keep_composebox_empty: true,
         });
     });
 
