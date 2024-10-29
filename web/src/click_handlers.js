@@ -261,7 +261,7 @@ export function initialize() {
         };
 
         $.ajax({
-            url: 'http://aigente-chathub:8801/api/chat/help/complete',
+            url: 'http://localhost:8801/api/chat/help/complete',
             type: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(requestData),
