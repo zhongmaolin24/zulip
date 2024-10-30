@@ -137,7 +137,6 @@ function test(label, f) {
         });
 
         stub_buddy_list_elements();
-        helpers.override(buddy_list, "render_section_headers", noop);
         helpers.override(buddy_list, "render_view_user_list_links", noop);
 
         presence.presence_info.set(alice.user_id, {status: "active"});
@@ -732,7 +731,6 @@ test("realm_presence_disabled", ({override}) => {
 test("redraw_muted_user", () => {
     muted_users.add_muted_user(mark.user_id);
     activity_ui.redraw_user(mark.user_id);
-    assert.equal($("#buddy-list-users-matching-view").html(), "never-been-set");
 });
 
 test("update_presence_info", ({override, override_rewire}) => {

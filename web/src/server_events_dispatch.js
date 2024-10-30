@@ -208,7 +208,6 @@ export function dispatch_normal_event(event) {
             const realm_settings = {
                 allow_edit_history: noop,
                 allow_message_editing: noop,
-                edit_topic_policy: noop,
                 avatar_changes_disabled: settings_account.update_avatar_change_display,
                 bot_creation_policy: settings_bots.update_bot_permissions_ui,
                 can_delete_any_message_group: noop,
@@ -323,7 +322,7 @@ export function dispatch_normal_event(event) {
                                     compose_recipient.check_posting_policy_for_compose_box();
                                 }
 
-                                if (key === "edit_topic_policy") {
+                                if (key === "can_move_messages_between_topics_group") {
                                     message_live_update.rerender_messages_view();
                                 }
 
@@ -746,6 +745,9 @@ export function dispatch_normal_event(event) {
                 break;
             }
 
+            // TODO/typescript: Move privacy_setting_name_schema and PrivacySettingName
+            // here from `settings_account` when this file is converted to typescript,
+            // and use them instead of `privacy_settings`.
             const privacy_settings = [
                 "send_stream_typing_notifications",
                 "send_private_typing_notifications",

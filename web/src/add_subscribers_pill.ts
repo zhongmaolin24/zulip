@@ -100,49 +100,13 @@ export function generate_pill_html(item: CombinedPill): string {
     return stream_pill.generate_pill_html(item);
 }
 
-export function create({
-    $pill_container,
-    get_potential_subscribers,
-    get_potential_groups,
-}: {
-    $pill_container: JQuery;
-    get_potential_subscribers: () => User[];
-    get_potential_groups?: () => UserGroup[];
-}): CombinedPillContainer {
-    const pill_widget = input_pill.create<CombinedPill>({
-        $container: $pill_container,
-        create_item_from_text,
-        get_text_from_item,
-        get_display_value_from_item,
-        generate_pill_html,
-    });
-    function get_users(): User[] {
-        const potential_subscribers = get_potential_subscribers();
-        return user_pill.filter_taken_users(potential_subscribers, pill_widget);
-    }
-    const opts: {
-        pill_widget: CombinedPillContainer;
-        $pill_container: JQuery;
-        get_users: () => User[];
-        get_user_groups?: () => UserGroup[];
-    } = {
-        pill_widget,
-        $pill_container,
-        get_users,
-    };
-    if (get_potential_groups !== undefined) {
-        function get_user_groups(): UserGroup[] {
-            assert(get_potential_groups !== undefined);
-            const potential_groups = get_potential_groups();
-            return user_group_pill.filter_taken_groups(potential_groups, pill_widget);
-        }
-        opts.get_user_groups = get_user_groups;
-    }
-
-    set_up_pill_typeahead(opts);
-
+export function set_up_handlers_for_add_button_state(
+    pill_widget: CombinedPillContainer,
+    $pill_container: JQuery,
+): void {
     const $pill_widget_input = $pill_container.find(".input");
     const $pill_widget_button = $pill_container.parent().find(".add-users-button");
+
     // Disable the add button first time the pill container is created.
     $pill_widget_button.prop("disabled", true);
 
@@ -158,6 +122,30 @@ export function create({
             !pill_widget.is_pending() && pill_widget.items().length === 0,
         ),
     );
+}
+
+export function create({
+    $pill_container,
+    get_potential_subscribers,
+}: {
+    $pill_container: JQuery;
+    get_potential_subscribers: () => User[];
+}): CombinedPillContainer {
+    const pill_widget = input_pill.create<CombinedPill>({
+        $container: $pill_container,
+        create_item_from_text,
+        get_text_from_item,
+        get_display_value_from_item,
+        generate_pill_html,
+    });
+    function get_users(): User[] {
+        const potential_subscribers = get_potential_subscribers();
+        return user_pill.filter_taken_users(potential_subscribers, pill_widget);
+    }
+
+    set_up_pill_typeahead({pill_widget, $pill_container, get_users});
+
+    set_up_handlers_for_add_button_state(pill_widget, $pill_container);
 
     return pill_widget;
 }

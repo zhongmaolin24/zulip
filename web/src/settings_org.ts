@@ -105,12 +105,63 @@ export function maybe_disable_widgets(): void {
         .addClass("control-label-disabled");
 }
 
+export function enable_or_disable_group_permission_settings(): void {
+    if (current_user.is_owner) {
+        const $permission_pill_container_elements = $("#organization-permissions").find(
+            ".pill-container",
+        );
+        $permission_pill_container_elements.find(".input").prop("contenteditable", true);
+        $permission_pill_container_elements
+            .closest(".input-group")
+            .removeClass("group_setting_disabled");
+        settings_components.enable_opening_typeahead_on_clicking_label(
+            $("#organization-permissions"),
+        );
+        return;
+    }
+
+    if (current_user.is_admin) {
+        const $permission_pill_container_elements = $("#organization-permissions").find(
+            ".pill-container",
+        );
+        $permission_pill_container_elements.find(".input").prop("contenteditable", true);
+        $permission_pill_container_elements
+            .closest(".input-group")
+            .removeClass("group_setting_disabled");
+        settings_components.enable_opening_typeahead_on_clicking_label(
+            $("#organization-permissions"),
+        );
+
+        // Admins are not allowed to update organization joining and group
+        // related settings.
+        const owner_editable_settings = [
+            "realm_create_multiuse_invite_group",
+            "realm_can_create_groups",
+            "realm_can_manage_all_groups",
+        ];
+        for (const setting_name of owner_editable_settings) {
+            const $permission_pill_container = $(`#id_${CSS.escape(setting_name)}`);
+            $permission_pill_container.find(".input").prop("contenteditable", false);
+            $permission_pill_container.closest(".input-group").addClass("group_setting_disabled");
+            settings_components.disable_opening_typeahead_on_clicking_label(
+                $permission_pill_container.closest(".input-group"),
+            );
+        }
+        return;
+    }
+
+    const $permission_pill_container_elements = $("#organization-permissions").find(
+        ".pill-container",
+    );
+    $permission_pill_container_elements.find(".input").prop("contenteditable", false);
+    $permission_pill_container_elements.closest(".input-group").addClass("group_setting_disabled");
+    settings_components.disable_opening_typeahead_on_clicking_label($("#organization-permissions"));
+}
+
 type OrganizationSettingsOptions = {
     common_policy_values: SettingOptionValueWithKey[];
     wildcard_mention_policy_values: SettingOptionValueWithKey[];
-    common_message_policy_values: SettingOptionValueWithKey[];
     invite_to_realm_policy_values: SettingOptionValueWithKey[];
-    edit_topic_policy_values: SettingOptionValueWithKey[];
 };
 
 export function get_organization_settings_options(): OrganizationSettingsOptions {
@@ -121,14 +172,8 @@ export function get_organization_settings_options(): OrganizationSettingsOptions
         wildcard_mention_policy_values: settings_components.get_sorted_options_list(
             settings_config.wildcard_mention_policy_values,
         ),
-        common_message_policy_values: settings_components.get_sorted_options_list(
-            settings_config.common_message_policy_values,
-        ),
         invite_to_realm_policy_values: settings_components.get_sorted_options_list(
             settings_config.email_invite_to_realm_policy_values,
-        ),
-        edit_topic_policy_values: settings_components.get_sorted_options_list(
-            settings_config.edit_topic_policy_values,
         ),
     };
 }
@@ -228,27 +273,9 @@ function set_msg_edit_limit_dropdown(): void {
 
 function message_move_limit_setting_enabled(
     related_setting_name:
-        | "realm_edit_topic_policy"
+        | "realm_can_move_messages_between_topics_group"
         | "realm_can_move_messages_between_channels_group",
 ): boolean {
-    if (related_setting_name === "realm_edit_topic_policy") {
-        const setting_value_string = $<HTMLSelectOneElement>(
-            `select:not(multiple)#id_${CSS.escape(related_setting_name)}`,
-        ).val();
-        assert(setting_value_string !== undefined);
-        const setting_value = Number.parseInt(setting_value_string, 10);
-        const settings_options = settings_config.edit_topic_policy_values;
-
-        if (
-            setting_value === settings_options.by_admins_only.code ||
-            setting_value === settings_options.by_moderators_only.code ||
-            setting_value === settings_options.nobody.code
-        ) {
-            return false;
-        }
-
-        return true;
-    }
     const user_group_id = settings_components.get_dropdown_list_widget_setting_value(
         $(`#id_${related_setting_name}`),
     );
@@ -281,7 +308,9 @@ function set_msg_move_limit_setting(property_name: MessageMoveTimeLimitSetting):
 
     let disable_setting;
     if (property_name === "realm_move_messages_within_stream_limit_seconds") {
-        disable_setting = message_move_limit_setting_enabled("realm_edit_topic_policy");
+        disable_setting = message_move_limit_setting_enabled(
+            "realm_can_move_messages_between_topics_group",
+        );
     } else {
         disable_setting = message_move_limit_setting_enabled(
             "realm_can_move_messages_between_channels_group",
@@ -506,6 +535,9 @@ function update_dependent_subsettings(property_name: string): void {
         case "realm_can_move_messages_between_channels_group":
             set_msg_move_limit_setting("realm_move_messages_between_streams_limit_seconds");
             break;
+        case "realm_can_move_messages_between_topics_group":
+            set_msg_move_limit_setting("realm_move_messages_within_stream_limit_seconds");
+            break;
         case "realm_org_join_restrictions":
             set_org_join_restrictions_dropdown();
             break;
@@ -551,25 +583,34 @@ export function discard_realm_property_element_changes(elem: HTMLElement): void 
         case "realm_signup_announcements_stream_id":
         case "realm_zulip_update_announcements_stream_id":
         case "realm_default_code_block_language":
-        case "realm_create_multiuse_invite_group":
         case "realm_direct_message_initiator_group":
         case "realm_direct_message_permission_group":
         case "realm_can_add_custom_emoji_group":
         case "realm_can_access_all_users_group":
-        case "realm_can_create_groups":
-        case "realm_can_create_public_channel_group":
-        case "realm_can_create_private_channel_group":
         case "realm_can_create_web_public_channel_group":
         case "realm_can_delete_any_message_group":
         case "realm_can_delete_own_message_group":
-        case "realm_can_manage_all_groups":
         case "realm_can_move_messages_between_channels_group":
+        case "realm_can_move_messages_between_topics_group":
             assert(typeof property_value === "string" || typeof property_value === "number");
             settings_components.set_dropdown_list_widget_setting_value(
                 property_name,
                 property_value,
             );
             break;
+        case "realm_can_create_groups":
+        case "realm_can_create_public_channel_group":
+        case "realm_can_create_private_channel_group":
+        case "realm_can_manage_all_groups":
+        case "realm_create_multiuse_invite_group": {
+            const pill_widget = settings_components.get_group_setting_widget(property_name);
+            assert(pill_widget !== null);
+            settings_components.set_group_setting_widget_value(
+                pill_widget,
+                group_setting_value_schema.parse(property_value),
+            );
+            break;
+        }
         case "realm_default_language":
             assert(typeof property_value === "string");
             $("#org-notifications .language_selection_widget .language_selection_button span").attr(
@@ -916,7 +957,17 @@ export function set_up_dropdown_widget_for_realm_group_settings(): void {
         realm.server_supported_permission_settings.realm,
     );
 
+    const settings_using_pills_ui = new Set([
+        "can_create_groups",
+        "can_create_public_channel_group",
+        "can_create_private_channel_group",
+        "can_manage_all_groups",
+        "create_multiuse_invite_group",
+    ]);
     for (const setting_name of realm_group_permission_settings) {
+        if (settings_using_pills_ui.has(setting_name)) {
+            continue;
+        }
         const get_setting_options = (): UserGroupForDropdownListWidget[] =>
             user_groups.get_realm_user_groups_for_dropdown_list_widget(setting_name, "realm");
         let dropdown_list_item_click_callback:
@@ -943,6 +994,13 @@ export function set_up_dropdown_widget_for_realm_group_settings(): void {
             case "can_move_messages_between_channels_group": {
                 dropdown_list_item_click_callback = () => {
                     set_msg_move_limit_setting("realm_move_messages_between_streams_limit_seconds");
+                };
+
+                break;
+            }
+            case "can_move_messages_between_topics_group": {
+                dropdown_list_item_click_callback = () => {
+                    set_msg_move_limit_setting("realm_move_messages_within_stream_limit_seconds");
                 };
 
                 break;
@@ -1114,6 +1172,31 @@ export function register_save_discard_widget_handlers(
     );
 }
 
+function initialize_group_setting_widgets(): void {
+    settings_components.create_realm_group_setting_widget({
+        $pill_container: $("#id_realm_create_multiuse_invite_group"),
+        setting_name: "create_multiuse_invite_group",
+    });
+    settings_components.create_realm_group_setting_widget({
+        $pill_container: $("#id_realm_can_create_public_channel_group"),
+        setting_name: "can_create_public_channel_group",
+    });
+    settings_components.create_realm_group_setting_widget({
+        $pill_container: $("#id_realm_can_create_private_channel_group"),
+        setting_name: "can_create_private_channel_group",
+    });
+    settings_components.create_realm_group_setting_widget({
+        $pill_container: $("#id_realm_can_create_groups"),
+        setting_name: "can_create_groups",
+    });
+    settings_components.create_realm_group_setting_widget({
+        $pill_container: $("#id_realm_can_manage_all_groups"),
+        setting_name: "can_manage_all_groups",
+    });
+
+    enable_or_disable_group_permission_settings();
+}
+
 export function build_page(): void {
     meta.loaded = true;
 
@@ -1123,6 +1206,8 @@ export function build_page(): void {
     init_dropdown_widgets();
     // Populate realm domains
     populate_realm_domains_label(realm.realm_domains);
+
+    initialize_group_setting_widgets();
 
     // Populate authentication methods table
 
@@ -1239,30 +1324,6 @@ export function build_page(): void {
     $<HTMLInputElement>("input#id_realm_allow_message_editing").on("change", function () {
         update_message_edit_sub_settings(this.checked);
     });
-
-    $("#org-moving-msgs").on(
-        "change",
-        ".move-message-policy-setting",
-        function (this: HTMLElement) {
-            const $policy_dropdown_elem = $(this);
-            const property_name = z
-                .enum(["realm_edit_topic_policy", "realm_can_move_messages_between_channels_group"])
-                .parse(settings_components.extract_property_name($policy_dropdown_elem));
-            const disable_time_limit_setting = message_move_limit_setting_enabled(property_name);
-
-            let time_limit_setting_name: MessageMoveTimeLimitSetting;
-            if (property_name === "realm_edit_topic_policy") {
-                time_limit_setting_name = "realm_move_messages_within_stream_limit_seconds";
-            } else {
-                time_limit_setting_name = "realm_move_messages_between_streams_limit_seconds";
-            }
-
-            enable_or_disable_related_message_move_time_limit_setting(
-                time_limit_setting_name,
-                disable_time_limit_setting,
-            );
-        },
-    );
 
     $("#id_realm_org_join_restrictions").on("click", (e) => {
         // This prevents the disappearance of modal when there are
